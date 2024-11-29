@@ -2,41 +2,38 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:bcrypt/bcrypt.dart';
-import 'register.dart';
-import '../admin_screen.dart';
-import '../user_screen.dart';
-import '../leader_screen.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
   Future<void> _login(
-      BuildContext context, String email, String password) async {
+      BuildContext context, String name, String password) async {
     try {
       // Fetch user data from Firestore
       QuerySnapshot userQuery = await FirebaseFirestore.instance
           .collection('tb_user')
-          .where('email', isEqualTo: email)
+          .where('name', isEqualTo: name)
           .limit(1)
           .get();
 
       if (userQuery.docs.isEmpty) {
         throw FirebaseAuthException(
-            message: 'User not found', code: 'user-not-found');
+            message: 'Username dan Password tidak boleh kosong', code: 'user-not-found');
       }
 
       DocumentSnapshot userDoc = userQuery.docs.first;
       String storedHashedPassword = userDoc['password'];
+      String email = userDoc['email'];
 
       // Verify the password using bcrypt
       if (!BCrypt.checkpw(password, storedHashedPassword)) {
         throw FirebaseAuthException(
-            message: 'Invalid password', code: 'wrong-password');
+            message: 'Password yang anda masukan salah', code: 'wrong-password');
       }
 
       // Sign in the user with Firebase Authentication
       UserCredential userCredential =
-          await FirebaseAuth.instance.signInWithEmailAndPassword(
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -45,32 +42,23 @@ class LoginScreen extends StatelessWidget {
 
       // Navigate to different routes based on role
       if (role == 'admin') {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const AdminScreen()),
-        );
+        Navigator.pushReplacementNamed(context, '/admin');
       } else if (role == 'pengguna') {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const UserScreen()),
-        );
+        Navigator.pushReplacementNamed(context, '/user');
       } else if (role == 'pimpinan') {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const LeaderScreen()),
-        );
+        Navigator.pushReplacementNamed(context, '/leader');
       }
     } on FirebaseAuthException catch (e) {
       // Handle login error
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? 'Login failed')),
+        SnackBar(content: Text(e.message ?? 'Login Gagal')),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final TextEditingController emailController = TextEditingController();
+    final TextEditingController nameController = TextEditingController();
     final TextEditingController passwordController = TextEditingController();
 
     return Scaffold(
@@ -98,9 +86,9 @@ class LoginScreen extends StatelessWidget {
                     child: Column(
                       children: [
                         TextField(
-                          controller: emailController,
+                          controller: nameController,
                           decoration: const InputDecoration(
-                            labelText: 'Email',
+                            labelText: 'Name',
                             border: OutlineInputBorder(),
                           ),
                         ),
@@ -116,7 +104,7 @@ class LoginScreen extends StatelessWidget {
                         const SizedBox(height: 20),
                         ElevatedButton(
                           onPressed: () {
-                            _login(context, emailController.text,
+                            _login(context, nameController.text,
                                 passwordController.text);
                           },
                           style: ElevatedButton.styleFrom(
@@ -134,11 +122,7 @@ class LoginScreen extends StatelessWidget {
                 const SizedBox(height: 10),
                 TextButton(
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const RegisterScreen()),
-                    );
+                    Navigator.pushNamed(context, '/register');
                   },
                   child: const Text('Register'),
                 ),

@@ -1,58 +1,145 @@
 import 'package:flutter/material.dart';
-import 'login.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:bcrypt/bcrypt.dart';
 
 class RegisterScreen extends StatelessWidget {
   const RegisterScreen({super.key});
 
+  Future<void> _register(
+      BuildContext context, String name, String email, String password, String alamat, String noTelp) async {
+    try {
+      // Hash the password using bcrypt
+      String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
+
+      // Register the user with Firebase Authentication
+      UserCredential userCredential =
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // Save user data in Firestore with role 'pengguna'
+      await FirebaseFirestore.instance
+          .collection('tb_user')
+          .doc(userCredential.user?.uid)
+          .set({
+        'name': name,
+        'email': email,
+        'password': hashedPassword,
+        'uid': userCredential.user?.uid,
+        'alamat': alamat,
+        'no_telp': noTelp,
+        'role': 'pengguna',
+        'created_at': FieldValue.serverTimestamp(),
+        'updated_at': FieldValue.serverTimestamp(),
+      });
+
+      // Navigate to login screen after registration
+      Navigator.pushReplacementNamed(context, '/login');
+    } on FirebaseAuthException catch (e) {
+      // Handle registration error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? 'Registration failed')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final TextEditingController nameController = TextEditingController();
+    final TextEditingController emailController = TextEditingController();
+    final TextEditingController passwordController = TextEditingController();
+    final TextEditingController alamatController = TextEditingController();
+    final TextEditingController noTelpController = TextEditingController();
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Register'),
-      ),
+      appBar: AppBar(title: const Text('Register')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Center(
           child: SingleChildScrollView(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
+              children: [
                 Text(
-                  'Create Account',
-                  style: Theme.of(context).textTheme.headlineMedium,
+                  'Register SIM Booking Perumahan',
+                  style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 20),
-                const TextField(
-                  decoration: InputDecoration(
-                    labelText: 'Email',
-                    border: OutlineInputBorder(),
+                Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15.0),
                   ),
-                ),
-                const SizedBox(height: 20),
-                const TextField(
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    border: OutlineInputBorder(),
+                  elevation: 5,
+                  shadowColor: Colors.black54,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      children: [
+                        TextField(
+                          controller: nameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Username',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        TextField(
+                          controller: alamatController,
+                          decoration: const InputDecoration(
+                            labelText: 'Alamat',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        TextField(
+                          controller: noTelpController,
+                          decoration: const InputDecoration(
+                            labelText: 'No Telp',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        TextField(
+                          controller: emailController,
+                          decoration: const InputDecoration(
+                            labelText: 'Email',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        TextField(
+                          controller: passwordController,
+                          decoration: const InputDecoration(
+                            labelText: 'Password',
+                            border: OutlineInputBorder(),
+                          ),
+                          obscureText: true,
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: () {
+                            _register(
+                              context,
+                              nameController.text,
+                              emailController.text,
+                              passwordController.text,
+                              alamatController.text,
+                              noTelpController.text,
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 50),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10.0),
+                            ),
+                          ),
+                          child: const Text('Register'),
+                        ),
+                      ],
+                    ),
                   ),
-                  obscureText: true,
-                ),
-                const SizedBox(height: 20),
-                const TextField(
-                  decoration: InputDecoration(
-                    labelText: 'Confirm Password',
-                    border: OutlineInputBorder(),
-                  ),
-                  obscureText: true,
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () {
-                    // Logika registrasi
-                  },
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 50),
-                  ),
-                  child: const Text('Register'),
                 ),
                 const SizedBox(height: 10),
                 TextButton(
