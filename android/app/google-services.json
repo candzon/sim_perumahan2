@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "703873230238",
+    "project_id": "sim-perumahan-3d9f3",
+    "storage_bucket": "sim-perumahan-3d9f3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:703873230238:android:88f8117a6aadf13208628f",
+        "android_client_info": {
+          "package_name": "com.sim.perumahan.sim_perumahan2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC4MXtq5Wl88LzSiQLMvs7kal_xZAI1vaM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
