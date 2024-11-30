@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:bcrypt/bcrypt.dart';
-import '../component/confirmation_dialog.dart';
+import 'form_booking.dart';
+import  '../../house.dart';
+
 
 class UserScreen extends StatefulWidget {
   final String uid;
@@ -28,33 +30,12 @@ class _UserScreenState extends State<UserScreen> {
     });
   }
 
-  Future<void> _logout(BuildContext context) async {
-    bool confirm = await _showConfirmationDialog(
-      context,
-      'Logout Confirmation',
-      'Are you sure you want to logout?',
-    );
-    if (confirm) {
-      _currentUserId = null;
-      Navigator.pushReplacementNamed(context, '/login');
-    }
+  void _logout(BuildContext context) {
+    _currentUserId = null;
+    Navigator.pushReplacementNamed(context, '/login');
   }
 
-  Future<bool> _showConfirmationDialog(BuildContext context, String title, String message) async {
-    return await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
-        return ConfirmationDialog(
-          title: title,
-          message: message,
-          onConfirm: () => Navigator.of(context).pop(true),
-          onCancel: () => Navigator.of(context).pop(false),
-        );
-      },
-    ) ?? false;
-  }
-
-  Future<void> _changePassword(BuildContext context) async {
+  void _changePassword(BuildContext context) async {
     final TextEditingController newPasswordController = TextEditingController();
 
     showDialog(
@@ -79,40 +60,43 @@ class _UserScreenState extends State<UserScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
-                bool confirm = await _showConfirmationDialog(
-                  context,
-                  'Change Password Confirmation',
-                  'Are you sure you want to change your password?',
-                );
-                if (confirm) {
-                  try {
-                    if (_currentUserId != null) {
-                      String hashedPassword = BCrypt.hashpw(
-                          newPasswordController.text, BCrypt.gensalt());
-                      await FirebaseFirestore.instance
-                          .collection('tb_user')
-                          .doc(_currentUserId)
-                          .update({
-                        'password': hashedPassword,
-                        'updated_at': FieldValue.serverTimestamp(),
-                      });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Password changed successfully')),
-                      );
-                      Navigator.pop(context);
-                    }
-                  } catch (e) {
+                try {
+                  if (_currentUserId != null) {
+                    String hashedPassword = BCrypt.hashpw(
+                        newPasswordController.text, BCrypt.gensalt());
+                    await FirebaseFirestore.instance
+                        .collection('tb_user')
+                        .doc(_currentUserId)
+                        .update({
+                      'password': hashedPassword,
+                      'updated_at': FieldValue.serverTimestamp(),
+                    });
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to change password: $e')),
+                      const SnackBar(
+                          content: Text('Password changed successfully')),
                     );
+                    Navigator.pop(context);
                   }
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to change password: $e')),
+                  );
                 }
               },
               child: const Text('Change'),
             ),
           ],
         );
+      },
+    );
+  }
+
+  void _showBookingForm(BuildContext context, String productId) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return FormBooking(productId: productId, uid: _currentUserId!);
       },
     );
   }
@@ -129,12 +113,20 @@ class _UserScreenState extends State<UserScreen> {
           ),
         ],
       ),
-      body: _selectedIndex == 0 ? _buildProductList() : _buildProfile(),
+      body: _selectedIndex == 0
+          ? _buildProductList()
+          : _selectedIndex == 1
+          ? _buildBookingHistory()
+          : _buildProfile(),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.shopping_bag),
             label: 'Product',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history),
+            label: 'Booking History',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
@@ -216,7 +208,7 @@ class _UserScreenState extends State<UserScreen> {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final houses = snapshot.data!.docs;
+        final houses = snapshot.data!.docs.map((doc) => House.fromDocument(doc)).toList();
 
         return GridView.builder(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -227,7 +219,7 @@ class _UserScreenState extends State<UserScreen> {
           itemCount: houses.length,
           itemBuilder: (context, index) {
             final house = houses[index];
-            final isBooked = house['status'] == 'booked';
+            final isDisabled = house.status == 'booked' || house.status == 'pending';
 
             return Card(
               elevation: 6.0,
@@ -247,7 +239,7 @@ class _UserScreenState extends State<UserScreen> {
                             topRight: Radius.circular(20.0),
                           ),
                           child: Image.network(
-                            house['image'],
+                            house.image,
                             fit: BoxFit.cover,
                             width: double.infinity,
                             height: double.infinity,
@@ -278,7 +270,7 @@ class _UserScreenState extends State<UserScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Rp ${house['price']}',
+                          'Rp ${house.price}',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 20,
@@ -292,7 +284,7 @@ class _UserScreenState extends State<UserScreen> {
                         Row(
                           children: [
                             Text(
-                              house['location'],
+                              house.location,
                               style: TextStyle(
                                 color: Theme.of(context)
                                     .textTheme
@@ -307,7 +299,7 @@ class _UserScreenState extends State<UserScreen> {
                         Row(
                           children: [
                             Text(
-                              '${house['type']}',
+                              house.type,
                               style: TextStyle(
                                 color: Theme.of(context)
                                     .textTheme
@@ -321,7 +313,7 @@ class _UserScreenState extends State<UserScreen> {
                         Row(
                           children: [
                             Text(
-                              '${house['houseType']}',
+                              house.houseType,
                               style: TextStyle(
                                 color: Theme.of(context)
                                     .textTheme
@@ -334,14 +326,14 @@ class _UserScreenState extends State<UserScreen> {
                         ),
                         const SizedBox(height: 12),
                         ElevatedButton(
-                          onPressed: isBooked
+                          onPressed: isDisabled
                               ? null
                               : () {
-                            // Handle booking logic here
+                            _showBookingForm(context, house.id);
                           },
                           style: ElevatedButton.styleFrom(
                             minimumSize: const Size(double.infinity, 50),
-                            backgroundColor: isBooked
+                            backgroundColor: isDisabled
                                 ? Colors.grey
                                 : Theme.of(context).secondaryHeaderColor,
                             shape: RoundedRectangleBorder(
@@ -351,7 +343,7 @@ class _UserScreenState extends State<UserScreen> {
                                 vertical: 12.0, horizontal: 24.0),
                           ),
                           child: Text(
-                            isBooked ? 'Booked' : 'Booking Now',
+                            isDisabled ? 'Booked' : 'Booking Now',
                             style: const TextStyle(fontSize: 16),
                           ),
                         ),
@@ -359,6 +351,46 @@ class _UserScreenState extends State<UserScreen> {
                     ),
                   ),
                 ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildBookingHistory() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('tb_booking')
+          .where('uid', isEqualTo: _currentUserId)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final bookings = snapshot.data!.docs;
+
+        if (bookings.isEmpty) {
+          return const Center(child: Text('Belum ada Booking'));
+        }
+
+        return ListView.builder(
+          itemCount: bookings.length,
+          itemBuilder: (context, index) {
+            final booking = bookings[index];
+
+            return Card(
+              elevation: 4.0,
+              margin: const EdgeInsets.all(12.0),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10.0),
+              ),
+              child: ListTile(
+                title: Text('Booking ID: ${booking.id}'),
+                subtitle: Text('Status: ${booking['status']}'),
+                trailing: Text('Price: Rp ${booking['price']}'),
               ),
             );
           },

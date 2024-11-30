@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sim_perumahan2/screen/list_booking_pelanggan.dart';
 import 'add_product_screen.dart';
 import 'add_user_screen.dart';
 import '../component/confirmation_dialog.dart';
@@ -16,6 +17,7 @@ class _AdminScreenState extends State<AdminScreen> {
   static const List<Widget> _pages = <Widget>[
     AddProductScreen(),
     AddUserScreen(),
+    AdminBookingList()
   ];
 
   void _onItemTapped(int index) {
@@ -70,6 +72,10 @@ class _AdminScreenState extends State<AdminScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.person_add),
             label: 'Tambah User',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.list),
+            label: 'List Booking',
           ),
         ],
         currentIndex: _selectedIndex,
