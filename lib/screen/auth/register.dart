@@ -62,10 +62,6 @@ class RegisterScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  'Register SIM Booking Perumahan',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
                 const SizedBox(height: 20),
                 Card(
                   shape: RoundedRectangleBorder(

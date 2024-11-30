@@ -43,7 +43,7 @@ class _AdminScreenState extends State<AdminScreen> {
           ),
         ],
       ),
-      body: _pages[_selectedIndex],
+      body: _pages.elementAt(_selectedIndex),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(

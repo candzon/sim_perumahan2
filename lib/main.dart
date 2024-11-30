@@ -23,7 +23,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'SIM Booking Perumahan',
+      title: 'SIM Booking Rumah',
       theme: ThemeData(primarySwatch: Colors.blue),
       initialRoute: '/',
       routes: {

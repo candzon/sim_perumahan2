@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:bcrypt/bcrypt.dart';
 
 class UserScreen extends StatefulWidget {
   const UserScreen({super.key});
@@ -51,12 +52,19 @@ class _UserScreenState extends State<UserScreen> {
                 try {
                   User? user = FirebaseAuth.instance.currentUser;
                   if (user != null) {
+                    String hashedPassword = BCrypt.hashpw(
+                        newPasswordController.text, BCrypt.gensalt());
                     await user.updatePassword(newPasswordController.text);
-                    await FirebaseFirestore.instance.collection('tb_user').doc(user.uid).update({
+                    await FirebaseFirestore.instance
+                        .collection('tb_user')
+                        .doc(user.uid)
+                        .update({
+                      'password': hashedPassword,
                       'updated_at': FieldValue.serverTimestamp(),
                     });
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Password changed successfully')),
+                      const SnackBar(
+                          content: Text('Password changed successfully')),
                     );
                     Navigator.pop(context);
                   }
@@ -105,16 +113,14 @@ class _UserScreenState extends State<UserScreen> {
   }
 
   Widget _buildProfile() {
-    final User? currentUser = FirebaseAuth.instance.currentUser;
-
-    if (currentUser == null) {
-      return const Center(child: Text('No user logged in'));
+    if (FirebaseAuth.instance.currentUser == null) {
+      return const Center(child: Text('User not found'));
     }
 
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance
           .collection('tb_user')
-          .doc(currentUser.uid)
+          .doc('uid')
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
@@ -179,7 +185,8 @@ class _UserScreenState extends State<UserScreen> {
 
         return GridView.builder(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 1, // Make the card larger by reducing the number of columns
+            crossAxisCount: 1,
+            // Make the card larger by reducing the number of columns
             crossAxisSpacing: 10,
             mainAxisSpacing: 10,
           ),
@@ -220,7 +227,8 @@ class _UserScreenState extends State<UserScreen> {
                             ),
                             gradient: LinearGradient(
                               colors: [
-                                Colors.black.withOpacity(0.1), // Further reduced opacity
+                                Colors.black.withOpacity(0.1),
+                                // Further reduced opacity
                                 Colors.transparent,
                               ],
                               begin: Alignment.topCenter,
@@ -241,7 +249,10 @@ class _UserScreenState extends State<UserScreen> {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 20,
-                            color: Theme.of(context).textTheme.headlineSmall?.color,
+                            color: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
+                                ?.color,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -250,7 +261,10 @@ class _UserScreenState extends State<UserScreen> {
                             Text(
                               house['location'],
                               style: TextStyle(
-                                color: Theme.of(context).textTheme.headlineSmall?.color,
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .headlineSmall
+                                    ?.color,
                                 fontSize: 16,
                               ),
                             ),
@@ -262,7 +276,10 @@ class _UserScreenState extends State<UserScreen> {
                             Text(
                               '${house['type']}',
                               style: TextStyle(
-                                color: Theme.of(context).textTheme.headlineSmall?.color,
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .headlineSmall
+                                    ?.color,
                                 fontSize: 16,
                               ),
                             ),
@@ -273,7 +290,10 @@ class _UserScreenState extends State<UserScreen> {
                             Text(
                               '${house['houseType']}',
                               style: TextStyle(
-                                color: Theme.of(context).textTheme.headlineSmall?.color,
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .headlineSmall
+                                    ?.color,
                                 fontSize: 16,
                               ),
                             ),
@@ -281,16 +301,21 @@ class _UserScreenState extends State<UserScreen> {
                         ),
                         const SizedBox(height: 12),
                         ElevatedButton(
-                          onPressed: isBooked ? null : () {
-                            // Handle booking logic here
-                          },
+                          onPressed: isBooked
+                              ? null
+                              : () {
+                                  // Handle booking logic here
+                                },
                           style: ElevatedButton.styleFrom(
                             minimumSize: const Size(double.infinity, 50),
-                            backgroundColor: isBooked ? Colors.grey : Theme.of(context).secondaryHeaderColor,
+                            backgroundColor: isBooked
+                                ? Colors.grey
+                                : Theme.of(context).secondaryHeaderColor,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10.0),
                             ),
-                            padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 24.0),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 12.0, horizontal: 24.0),
                           ),
                           child: Text(
                             isBooked ? 'Booked' : 'Booking Now',
