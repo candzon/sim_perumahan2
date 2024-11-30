@@ -1,10 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:bcrypt/bcrypt.dart';
 
 class UserScreen extends StatefulWidget {
-  const UserScreen({super.key});
+  final String uid;
+
+  const UserScreen({super.key, required this.uid});
 
   @override
   _UserScreenState createState() => _UserScreenState();
@@ -12,6 +13,13 @@ class UserScreen extends StatefulWidget {
 
 class _UserScreenState extends State<UserScreen> {
   int _selectedIndex = 0;
+  String? _currentUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentUserId = widget.uid;
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -19,8 +27,8 @@ class _UserScreenState extends State<UserScreen> {
     });
   }
 
-  void _logout(BuildContext context) async {
-    await FirebaseAuth.instance.signOut();
+  void _logout(BuildContext context) {
+    _currentUserId = null;
     Navigator.pushReplacementNamed(context, '/login');
   }
 
@@ -50,14 +58,12 @@ class _UserScreenState extends State<UserScreen> {
             ElevatedButton(
               onPressed: () async {
                 try {
-                  User? user = FirebaseAuth.instance.currentUser;
-                  if (user != null) {
+                  if (_currentUserId != null) {
                     String hashedPassword = BCrypt.hashpw(
                         newPasswordController.text, BCrypt.gensalt());
-                    await user.updatePassword(newPasswordController.text);
                     await FirebaseFirestore.instance
                         .collection('tb_user')
-                        .doc(user.uid)
+                        .doc(_currentUserId)
                         .update({
                       'password': hashedPassword,
                       'updated_at': FieldValue.serverTimestamp(),
@@ -113,14 +119,14 @@ class _UserScreenState extends State<UserScreen> {
   }
 
   Widget _buildProfile() {
-    if (FirebaseAuth.instance.currentUser == null) {
+    if (_currentUserId == null) {
       return const Center(child: Text('User not found'));
     }
 
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance
           .collection('tb_user')
-          .doc('uid')
+          .doc(_currentUserId)
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
@@ -186,7 +192,6 @@ class _UserScreenState extends State<UserScreen> {
         return GridView.builder(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 1,
-            // Make the card larger by reducing the number of columns
             crossAxisSpacing: 10,
             mainAxisSpacing: 10,
           ),
@@ -228,7 +233,6 @@ class _UserScreenState extends State<UserScreen> {
                             gradient: LinearGradient(
                               colors: [
                                 Colors.black.withOpacity(0.1),
-                                // Further reduced opacity
                                 Colors.transparent,
                               ],
                               begin: Alignment.topCenter,
@@ -304,8 +308,8 @@ class _UserScreenState extends State<UserScreen> {
                           onPressed: isBooked
                               ? null
                               : () {
-                                  // Handle booking logic here
-                                },
+                            // Handle booking logic here
+                          },
                           style: ElevatedButton.styleFrom(
                             minimumSize: const Size(double.infinity, 50),
                             backgroundColor: isBooked

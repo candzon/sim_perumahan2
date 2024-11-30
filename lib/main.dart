@@ -29,11 +29,15 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => const LoginScreen(),
         '/admin': (context) => const AdminScreen(),
-        '/user': (context) => const UserScreen(),
+        '/user': (context) {
+          final String uid = ModalRoute.of(context)!.settings.arguments as String;
+          return UserScreen(uid: uid);
+        },
         '/leader': (context) => const LeaderScreen(),
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
       },
     );
+
   }
 }

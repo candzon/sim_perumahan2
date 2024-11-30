@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:bcrypt/bcrypt.dart';
 
@@ -12,22 +11,15 @@ class RegisterScreen extends StatelessWidget {
       // Hash the password using bcrypt
       String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
 
-      // Register the user with Firebase Authentication
-      UserCredential userCredential =
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      // Generate a new document ID for the user
+      DocumentReference userDocRef = FirebaseFirestore.instance.collection('tb_user').doc();
 
       // Save user data in Firestore with role 'pengguna'
-      await FirebaseFirestore.instance
-          .collection('tb_user')
-          .doc(userCredential.user?.uid)
-          .set({
+      await userDocRef.set({
         'name': name,
         'email': email,
         'password': hashedPassword,
-        'uid': userCredential.user?.uid,
+        'uid': userDocRef.id,
         'alamat': alamat,
         'no_telp': noTelp,
         'role': 'pengguna',
@@ -37,10 +29,10 @@ class RegisterScreen extends StatelessWidget {
 
       // Navigate to login screen after registration
       Navigator.pushReplacementNamed(context, '/login');
-    } on FirebaseAuthException catch (e) {
+    } catch (e) {
       // Handle registration error
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? 'Registration failed')),
+        SnackBar(content: Text('Registration failed: $e')),
       );
     }
   }
