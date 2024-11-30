@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:bcrypt/bcrypt.dart';
+import '/component/confirmation_dialog.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -45,6 +46,20 @@ class LoginScreen extends StatelessWidget {
         SnackBar(content: Text(e.toString())),
       );
     }
+  }
+
+  Future<bool> _showConfirmationDialog(BuildContext context, String title, String message) async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return ConfirmationDialog(
+          title: title,
+          message: message,
+          onConfirm: () => Navigator.of(context).pop(true),
+          onCancel: () => Navigator.of(context).pop(false),
+        );
+      },
+    ) ?? false;
   }
 
   @override
@@ -94,9 +109,15 @@ class LoginScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 20),
                         ElevatedButton(
-                          onPressed: () {
-                            _login(context, nameController.text,
-                                passwordController.text);
+                          onPressed: () async {
+                            bool confirm = await _showConfirmationDialog(
+                              context,
+                              'Login Confirmation',
+                              'Are you sure you want to login?',
+                            );
+                            if (confirm) {
+                              _login(context, nameController.text, passwordController.text);
+                            }
                           },
                           style: ElevatedButton.styleFrom(
                             minimumSize: const Size(double.infinity, 50),

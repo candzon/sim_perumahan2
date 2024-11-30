@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:bcrypt/bcrypt.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import '../component/confirmation_dialog.dart';
 
 class AddUserScreen extends StatefulWidget {
   const AddUserScreen({super.key});
@@ -23,42 +24,70 @@ class _AddUserScreenState extends State<AddUserScreen> {
   String? _selectedRole;
   String? _editSelectedRole;
 
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _editNameController.dispose();
+    _editEmailController.dispose();
+    _editPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<bool> _showConfirmationDialog(String title, String message) async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return ConfirmationDialog(
+          title: title,
+          message: message,
+          onConfirm: () => Navigator.of(context).pop(true),
+          onCancel: () => Navigator.of(context).pop(false),
+        );
+      },
+    ) ?? false;
+  }
+
   void _addUser() async {
     if (_formKey.currentState!.validate()) {
-      try {
-        UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: _emailController.text,
-          password: _passwordController.text,
-        );
+      bool confirm = await _showConfirmationDialog('Add User', 'Are you sure you want to add this user?');
+      if (confirm) {
+        try {
+          UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+            email: _emailController.text,
+            password: _passwordController.text,
+          );
 
-        final hashedPassword = BCrypt.hashpw(_passwordController.text, BCrypt.gensalt());
+          final hashedPassword = BCrypt.hashpw(_passwordController.text, BCrypt.gensalt());
 
-        await FirebaseFirestore.instance
-            .collection('tb_user')
-            .doc(userCredential.user!.uid)
-            .set({
-          'uid': userCredential.user!.uid,
-          'name': _nameController.text,
-          'email': _emailController.text,
-          'alamat': 'NULL',
-          'no_telp': 'NULL',
-          'password': hashedPassword,
-          'role': _selectedRole,
-          'created_at': FieldValue.serverTimestamp(),
-          'updated_at': FieldValue.serverTimestamp(),
-        });
+          await FirebaseFirestore.instance
+              .collection('tb_user')
+              .doc(userCredential.user!.uid)
+              .set({
+            'uid': userCredential.user!.uid,
+            'name': _nameController.text,
+            'email': _emailController.text,
+            'alamat': 'NULL',
+            'no_telp': 'NULL',
+            'password': hashedPassword,
+            'role': _selectedRole,
+            'created_at': FieldValue.serverTimestamp(),
+            'updated_at': FieldValue.serverTimestamp(),
+          });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User added successfully')),
-        );
-        _formKey.currentState!.reset();
-        setState(() {
-          _selectedRole = null;
-        });
-      } on FirebaseAuthException catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to add user: ${e.message}')),
-        );
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('User added successfully')),
+          );
+          _formKey.currentState!.reset();
+          setState(() {
+            _selectedRole = null;
+          });
+        } on FirebaseAuthException catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to add user: ${e.message}')),
+          );
+        }
       }
     }
   }
@@ -143,20 +172,23 @@ class _AddUserScreenState extends State<AddUserScreen> {
             ElevatedButton(
               onPressed: () async {
                 if (_editFormKey.currentState!.validate()) {
-                  final updateData = {
-                    'name': _editNameController.text,
-                    'email': _editEmailController.text,
-                    'role': _editSelectedRole,
-                    'updated_at': FieldValue.serverTimestamp(),
-                  };
-                  if (_editPasswordController.text.isNotEmpty) {
-                    updateData['password'] = BCrypt.hashpw(_editPasswordController.text, BCrypt.gensalt());
+                  bool confirm = await _showConfirmationDialog('Edit User', 'Are you sure you want to update this user?');
+                  if (confirm) {
+                    final updateData = {
+                      'name': _editNameController.text,
+                      'email': _editEmailController.text,
+                      'role': _editSelectedRole,
+                      'updated_at': FieldValue.serverTimestamp(),
+                    };
+                    if (_editPasswordController.text.isNotEmpty) {
+                      updateData['password'] = BCrypt.hashpw(_editPasswordController.text, BCrypt.gensalt());
+                    }
+                    await FirebaseFirestore.instance.collection('tb_user').doc(id).update(updateData);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('User updated successfully')),
+                    );
+                    Navigator.pop(context);
                   }
-                  await FirebaseFirestore.instance.collection('tb_user').doc(id).update(updateData);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('User updated successfully')),
-                  );
-                  Navigator.pop(context);
                 }
               },
               child: const Text('Update'),
@@ -168,15 +200,18 @@ class _AddUserScreenState extends State<AddUserScreen> {
   }
 
   void _deleteUser(String id) async {
-    try {
-      await FirebaseFirestore.instance.collection('tb_user').doc(id).delete();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User deleted successfully')),
-      );
-    } on FirebaseFunctionsException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to delete user: ${e.message}')),
-      );
+    bool confirm = await _showConfirmationDialog('Delete User', 'Are you sure you want to delete this user?');
+    if (confirm) {
+      try {
+        await FirebaseFirestore.instance.collection('tb_user').doc(id).delete();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('User deleted successfully')),
+        );
+      } on FirebaseFunctionsException catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete user: ${e.message}')),
+        );
+      }
     }
   }
 
@@ -228,7 +263,7 @@ class _AddUserScreenState extends State<AddUserScreen> {
                   DropdownButtonFormField<String>(
                     value: _selectedRole,
                     decoration: const InputDecoration(labelText: 'Role'),
-                    items: ['admin', 'pengguna', 'pimpinan']
+                    items: ['admin', 'pimpinan']
                         .map((role) => DropdownMenuItem(
                       value: role,
                       child: Text(role),

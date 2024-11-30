@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import '../component/confirmation_dialog.dart';
 
 class AddProductScreen extends StatefulWidget {
   const AddProductScreen({super.key});
@@ -41,20 +42,23 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   void _addHouse() async {
     if (_formKey.currentState!.validate()) {
-      await FirebaseFirestore.instance.collection('tb_products').add({
-        'image': _addImageController.text,
-        'price': _addPriceController.text,
-        'location': _addLocationController.text,
-        'type': _addTypeController.text,
-        'houseType': _addHouseTypeController.text,
-        'status': 'available',
-        'created_at': FieldValue.serverTimestamp(),
-        'updated_at': FieldValue.serverTimestamp(),
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('House added successfully')),
-      );
-      _formKey.currentState!.reset();
+      bool confirm = await _showConfirmationDialog('Add House', 'Are you sure you want to add this house?');
+      if (confirm) {
+        await FirebaseFirestore.instance.collection('tb_products').add({
+          'image': _addImageController.text,
+          'price': _addPriceController.text,
+          'location': _addLocationController.text,
+          'type': _addTypeController.text,
+          'houseType': _addHouseTypeController.text,
+          'status': 'available',
+          'created_at': FieldValue.serverTimestamp(),
+          'updated_at': FieldValue.serverTimestamp(),
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('House added successfully')),
+        );
+        _formKey.currentState!.reset();
+      }
     }
   }
 
@@ -143,21 +147,24 @@ class _AddProductScreenState extends State<AddProductScreen> {
             ElevatedButton(
               onPressed: () async {
                 if (_editFormKey.currentState!.validate()) {
-                  await FirebaseFirestore.instance
-                      .collection('tb_products')
-                      .doc(id)
-                      .update({
-                    'image': _editImageController.text,
-                    'price': _editPriceController.text,
-                    'location': _editLocationController.text,
-                    'type': _editTypeController.text,
-                    'houseType': _editHouseTypeController.text,
-                    'updated_at': FieldValue.serverTimestamp(),
-                  });
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('House updated successfully')),
-                  );
-                  Navigator.pop(context);
+                  bool confirm = await _showConfirmationDialog('Edit House', 'Are you sure you want to update this house?');
+                  if (confirm) {
+                    await FirebaseFirestore.instance
+                        .collection('tb_products')
+                        .doc(id)
+                        .update({
+                      'image': _editImageController.text,
+                      'price': _editPriceController.text,
+                      'location': _editLocationController.text,
+                      'type': _editTypeController.text,
+                      'houseType': _editHouseTypeController.text,
+                      'updated_at': FieldValue.serverTimestamp(),
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('House updated successfully')),
+                    );
+                    Navigator.pop(context);
+                  }
                 }
               },
               child: const Text('Update'),
@@ -169,10 +176,35 @@ class _AddProductScreenState extends State<AddProductScreen> {
   }
 
   void _deleteHouse(String id) async {
-    await FirebaseFirestore.instance.collection('tb_products').doc(id).delete();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('House deleted successfully')),
-    );
+    bool confirm = await _showConfirmationDialog('Delete House', 'Are you sure you want to delete this house?');
+    if (confirm) {
+      await FirebaseFirestore.instance.collection('tb_products').doc(id).delete();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('House deleted successfully')),
+      );
+    }
+  }
+
+  Future<bool> _showConfirmationDialog(String title, String content) async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(content),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Confirm'),
+            ),
+          ],
+        );
+      },
+    ) ?? false;
   }
 
   @override
@@ -282,7 +314,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         rows: houses.map((house) {
                           return DataRow(cells: [
                             DataCell(Text(house['image'] != null &&
-                                    house['image'].isNotEmpty
+                                house['image'].isNotEmpty
                                 ? 'Image Link Uploaded'
                                 : '')),
                             DataCell(Text(house['price'])),
@@ -324,7 +356,7 @@ class ThousandsSeparatorInputFormatter extends TextInputFormatter {
     final text = newValue.text.replaceAll('.', '');
     if (text.isNotEmpty) {
       final formattedText =
-          NumberFormat.decimalPattern().format(int.parse(text));
+      NumberFormat.decimalPattern().format(int.parse(text));
       return newValue.copyWith(
         text: formattedText,
         selection: TextSelection.collapsed(offset: formattedText.length),

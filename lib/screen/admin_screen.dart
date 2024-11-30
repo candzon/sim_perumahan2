@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'add_product_screen.dart';
 import 'add_user_screen.dart';
+import '../component/confirmation_dialog.dart';
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
@@ -23,12 +24,28 @@ class _AdminScreenState extends State<AdminScreen> {
     });
   }
 
-  void _logout() {
-    // Add your logout logic here
-    Navigator.pushReplacementNamed(context, '/login');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Logged out successfully')),
-    );
+  Future<bool> _showConfirmationDialog(String title, String message) async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return ConfirmationDialog(
+          title: title,
+          message: message,
+          onConfirm: () => Navigator.of(context).pop(true),
+          onCancel: () => Navigator.of(context).pop(false),
+        );
+      },
+    ) ?? false;
+  }
+
+  void _logout() async {
+    bool confirm = await _showConfirmationDialog('Logout', 'Are you sure you want to logout?');
+    if (confirm) {
+      Navigator.pushReplacementNamed(context, '/login');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Logged out successfully')),
+      );
+    }
   }
 
   @override

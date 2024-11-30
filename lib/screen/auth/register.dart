@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:bcrypt/bcrypt.dart';
+import '/component/confirmation_dialog.dart';
 
 class RegisterScreen extends StatelessWidget {
   const RegisterScreen({super.key});
@@ -35,6 +36,20 @@ class RegisterScreen extends StatelessWidget {
         SnackBar(content: Text('Registration failed: $e')),
       );
     }
+  }
+
+  Future<bool> _showConfirmationDialog(BuildContext context, String title, String message) async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return ConfirmationDialog(
+          title: title,
+          message: message,
+          onConfirm: () => Navigator.of(context).pop(true),
+          onCancel: () => Navigator.of(context).pop(false),
+        );
+      },
+    ) ?? false;
   }
 
   @override
@@ -107,15 +122,22 @@ class RegisterScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 20),
                         ElevatedButton(
-                          onPressed: () {
-                            _register(
+                          onPressed: () async {
+                            bool confirm = await _showConfirmationDialog(
                               context,
-                              nameController.text,
-                              emailController.text,
-                              passwordController.text,
-                              alamatController.text,
-                              noTelpController.text,
+                              'Registration Confirmation',
+                              'Are you sure you want to register?',
                             );
+                            if (confirm) {
+                              _register(
+                                context,
+                                nameController.text,
+                                emailController.text,
+                                passwordController.text,
+                                alamatController.text,
+                                noTelpController.text,
+                              );
+                            }
                           },
                           style: ElevatedButton.styleFrom(
                             minimumSize: const Size(double.infinity, 50),

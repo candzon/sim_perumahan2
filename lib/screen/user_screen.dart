@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:bcrypt/bcrypt.dart';
+import '../component/confirmation_dialog.dart';
 
 class UserScreen extends StatefulWidget {
   final String uid;
@@ -27,12 +28,33 @@ class _UserScreenState extends State<UserScreen> {
     });
   }
 
-  void _logout(BuildContext context) {
-    _currentUserId = null;
-    Navigator.pushReplacementNamed(context, '/login');
+  Future<void> _logout(BuildContext context) async {
+    bool confirm = await _showConfirmationDialog(
+      context,
+      'Logout Confirmation',
+      'Are you sure you want to logout?',
+    );
+    if (confirm) {
+      _currentUserId = null;
+      Navigator.pushReplacementNamed(context, '/login');
+    }
   }
 
-  void _changePassword(BuildContext context) async {
+  Future<bool> _showConfirmationDialog(BuildContext context, String title, String message) async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return ConfirmationDialog(
+          title: title,
+          message: message,
+          onConfirm: () => Navigator.of(context).pop(true),
+          onCancel: () => Navigator.of(context).pop(false),
+        );
+      },
+    ) ?? false;
+  }
+
+  Future<void> _changePassword(BuildContext context) async {
     final TextEditingController newPasswordController = TextEditingController();
 
     showDialog(
@@ -57,27 +79,34 @@ class _UserScreenState extends State<UserScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
-                try {
-                  if (_currentUserId != null) {
-                    String hashedPassword = BCrypt.hashpw(
-                        newPasswordController.text, BCrypt.gensalt());
-                    await FirebaseFirestore.instance
-                        .collection('tb_user')
-                        .doc(_currentUserId)
-                        .update({
-                      'password': hashedPassword,
-                      'updated_at': FieldValue.serverTimestamp(),
-                    });
+                bool confirm = await _showConfirmationDialog(
+                  context,
+                  'Change Password Confirmation',
+                  'Are you sure you want to change your password?',
+                );
+                if (confirm) {
+                  try {
+                    if (_currentUserId != null) {
+                      String hashedPassword = BCrypt.hashpw(
+                          newPasswordController.text, BCrypt.gensalt());
+                      await FirebaseFirestore.instance
+                          .collection('tb_user')
+                          .doc(_currentUserId)
+                          .update({
+                        'password': hashedPassword,
+                        'updated_at': FieldValue.serverTimestamp(),
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Password changed successfully')),
+                      );
+                      Navigator.pop(context);
+                    }
+                  } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Password changed successfully')),
+                      SnackBar(content: Text('Failed to change password: $e')),
                     );
-                    Navigator.pop(context);
                   }
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed to change password: $e')),
-                  );
                 }
               },
               child: const Text('Change'),
