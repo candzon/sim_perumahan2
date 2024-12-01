@@ -2,10 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
 
-class AdminBookingList extends StatelessWidget {
+class AdminBookingList extends StatefulWidget {
   final String? role;
 
   const AdminBookingList({super.key, required this.role});
+
+  @override
+  _AdminBookingListState createState() => _AdminBookingListState();
+}
+
+class _AdminBookingListState extends State<AdminBookingList> {
+  String? _selectedStatus;
 
   Future<void> _updateStatus(String bookingId, String productId, String newStatus) async {
     // Update status in tb_booking
@@ -46,92 +53,120 @@ class AdminBookingList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('tb_booking').snapshots(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Booking List'),
+        actions: [
+          DropdownButton<String>(
+            value: _selectedStatus,
+            hint: const Text('Filter by Status'),
+            items: <String>['pending', 'booked', 'cancelled']
+                .map((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value),
+              );
+            }).toList(),
+            onChanged: (String? newValue) {
+              setState(() {
+                _selectedStatus = newValue;
+              });
+            },
+          ),
+        ],
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('tb_booking').snapshots(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-        final bookings = snapshot.data!.docs;
+          final bookings = snapshot.data!.docs.where((booking) {
+            if (_selectedStatus == null) {
+              return true;
+            }
+            return booking['status'] == _selectedStatus;
+          }).toList();
 
-        if (bookings.isEmpty) {
-          return const Center(child: Text('No bookings found'));
-        }
+          if (bookings.isEmpty) {
+            return const Center(child: Text('No bookings found'));
+          }
 
-        return ListView.builder(
-          itemCount: bookings.length,
-          itemBuilder: (context, index) {
-            final booking = bookings[index];
-            final productId = booking['product_id'];
-            final uid = booking['uid'];
-            final photoUrl = booking['image'];
-            String currentStatus = booking['status'];
+          return ListView.builder(
+            itemCount: bookings.length,
+            itemBuilder: (context, index) {
+              final booking = bookings[index];
+              final productId = booking['product_id'];
+              final uid = booking['uid'];
+              final photoUrl = booking['image'];
+              String currentStatus = booking['status'];
 
-            return FutureBuilder<Map<String, dynamic>?>(
-              future: _getUserDetails(uid),
-              builder: (context, userSnapshot) {
-                if (!userSnapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+              return FutureBuilder<Map<String, dynamic>?>(
+                future: _getUserDetails(uid),
+                builder: (context, userSnapshot) {
+                  if (!userSnapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
-                final userDetails = userSnapshot.data;
-                final userName = userDetails?['name'] ?? 'Unknown User';
+                  final userDetails = userSnapshot.data;
+                  final userName = userDetails?['name'] ?? 'Unknown User';
 
-                return Card(
-                  elevation: 4.0,
-                  margin: const EdgeInsets.all(12.0),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10.0),
-                  ),
-                  child: ListTile(
-                    leading: GestureDetector(
-                      onTap: () {
-                        if (photoUrl != null && photoUrl.isNotEmpty) {
-                          _showEnlargedImage(context, photoUrl);
-                        }
-                      },
-                      child: SizedBox(
-                        width: 50,
-                        height: 50,
-                        child: photoUrl != null && photoUrl.isNotEmpty
-                            ? Image.file(File(photoUrl), fit: BoxFit.cover)
-                            : const Icon(Icons.image_not_supported),
+                  return Card(
+                    elevation: 4.0,
+                    margin: const EdgeInsets.all(12.0),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                    child: ListTile(
+                      leading: GestureDetector(
+                        onTap: () {
+                          if (photoUrl != null && photoUrl.isNotEmpty) {
+                            _showEnlargedImage(context, photoUrl);
+                          }
+                        },
+                        child: SizedBox(
+                          width: 50,
+                          height: 50,
+                          child: photoUrl != null && photoUrl.isNotEmpty
+                              ? Image.file(File(photoUrl), fit: BoxFit.cover)
+                              : const Icon(Icons.image_not_supported),
+                        ),
                       ),
+                      title: Text('Booking ID: ${booking.id}'),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('User: $userName'),
+                          Text('Status: $currentStatus'),
+                          Text('Price: Rp ${booking['price']}'),
+                        ],
+                      ),
+                      trailing: widget.role == 'admin'
+                          ? DropdownButton<String>(
+                        value: currentStatus,
+                        items: <String>['pending', 'booked', 'cancelled']
+                            .map((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                        onChanged: (String? newValue) {
+                          if (newValue != null) {
+                            _updateStatus(booking.id, productId, newValue);
+                          }
+                        },
+                      )
+                          : null,
                     ),
-                    title: Text('Booking ID: ${booking.id}'),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('User: $userName'),
-                        Text('Status: $currentStatus'),
-                        Text('Price: Rp ${booking['price']}'),
-                      ],
-                    ),
-                    trailing: role == 'admin'
-                        ? DropdownButton<String>(
-                      value: currentStatus,
-                      items: <String>['pending', 'booked', 'cancelled']
-                          .map((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        if (newValue != null) {
-                          _updateStatus(booking.id, productId, newValue);
-                        }
-                      },
-                    )
-                        : null,
-                  ),
-                );
-              },
-            );
-          },
-        );
-      },
+                  );
+                },
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }
