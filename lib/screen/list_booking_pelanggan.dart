@@ -10,8 +10,10 @@ class AdminBookingList extends StatelessWidget {
   Future<void> _updateStatus(String bookingId, String productId, String newStatus) async {
     // Update status in tb_booking
     await FirebaseFirestore.instance.collection('tb_booking').doc(bookingId).update({'status': newStatus});
+
     // Update status in tb_products
-    await FirebaseFirestore.instance.collection('tb_products').doc(productId).update({'status': newStatus});
+    String productStatus = newStatus == 'cancelled' ? 'available' : newStatus;
+    await FirebaseFirestore.instance.collection('tb_products').doc(productId).update({'status': productStatus});
   }
 
   Future<Map<String, dynamic>?> _getUserDetails(String uid) async {
