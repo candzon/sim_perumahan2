@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import '../component/confirmation_dialog.dart';
 
 class AddProductScreen extends StatefulWidget {
-  const AddProductScreen({super.key});
+  final String role;
+
+  const AddProductScreen({super.key, required this.role});
 
   @override
   _AddProductScreenState createState() => _AddProductScreenState();
@@ -211,79 +212,80 @@ class _AddProductScreenState extends State<AddProductScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tambah Produk'),
+        title: widget.role == 'admin' ? const Text('Tambah Produk') : const Text('List Produk'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  TextFormField(
-                    controller: _addImageController,
-                    decoration: const InputDecoration(labelText: 'Image URL'),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter an image URL';
-                      }
-                      return null;
-                    },
-                  ),
-                  TextFormField(
-                    controller: _addPriceController,
-                    decoration: const InputDecoration(labelText: 'Price'),
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      ThousandsSeparatorInputFormatter(),
-                    ],
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter a price';
-                      }
-                      return null;
-                    },
-                  ),
-                  TextFormField(
-                    controller: _addLocationController,
-                    decoration: const InputDecoration(labelText: 'Location'),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter a location';
-                      }
-                      return null;
-                    },
-                  ),
-                  TextFormField(
-                    controller: _addTypeController,
-                    decoration: const InputDecoration(labelText: 'Type'),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter a type';
-                      }
-                      return null;
-                    },
-                  ),
-                  TextFormField(
-                    controller: _addHouseTypeController,
-                    decoration: const InputDecoration(labelText: 'House Type'),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter a house type';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: _addHouse,
-                    child: const Text('Tambah Rumah'),
-                  ),
-                ],
+            if (widget.role != 'pimpinan')
+              Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    TextFormField(
+                      controller: _addImageController,
+                      decoration: const InputDecoration(labelText: 'Image URL'),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter an image URL';
+                        }
+                        return null;
+                      },
+                    ),
+                    TextFormField(
+                      controller: _addPriceController,
+                      decoration: const InputDecoration(labelText: 'Price'),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        ThousandsSeparatorInputFormatter(),
+                      ],
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a price';
+                        }
+                        return null;
+                      },
+                    ),
+                    TextFormField(
+                      controller: _addLocationController,
+                      decoration: const InputDecoration(labelText: 'Location'),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a location';
+                        }
+                        return null;
+                      },
+                    ),
+                    TextFormField(
+                      controller: _addTypeController,
+                      decoration: const InputDecoration(labelText: 'Type'),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a type';
+                        }
+                        return null;
+                      },
+                    ),
+                    TextFormField(
+                      controller: _addHouseTypeController,
+                      decoration: const InputDecoration(labelText: 'House Type'),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a house type';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: _addHouse,
+                      child: const Text('Tambah Rumah'),
+                    ),
+                  ],
+                ),
               ),
-            ),
             const SizedBox(height: 20),
             Expanded(
               child: SingleChildScrollView(
@@ -321,19 +323,23 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             DataCell(Text(house['location'])),
                             DataCell(Text(house['type'])),
                             DataCell(Text(house['houseType'])),
-                            DataCell(Row(
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit),
-                                  onPressed: () => _editHouse(house.id,
-                                      house.data() as Map<String, dynamic>),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete),
-                                  onPressed: () => _deleteHouse(house.id),
-                                ),
-                              ],
-                            )),
+                            DataCell(
+                              widget.role != 'pimpinan'
+                                  ? Row(
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.edit),
+                                    onPressed: () => _editHouse(house.id,
+                                        house.data() as Map<String, dynamic>),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete),
+                                    onPressed: () => _deleteHouse(house.id),
+                                  ),
+                                ],
+                              )
+                                  : const Text(''),
+                            ),
                           ]);
                         }).toList(),
                       );

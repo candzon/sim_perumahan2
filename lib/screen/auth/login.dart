@@ -33,12 +33,10 @@ class LoginScreen extends StatelessWidget {
       String role = userDoc['role'];
 
       // Navigate to different routes based on role
-      if (role == 'admin') {
-        Navigator.pushReplacementNamed(context, '/admin', arguments: uid);
+      if (role == 'admin' || role == 'pimpinan') {
+        Navigator.pushReplacementNamed(context, '/admin', arguments: {'uid': uid, 'role': role});
       } else if (role == 'pengguna') {
         Navigator.pushReplacementNamed(context, '/user', arguments: uid);
-      } else if (role == 'pimpinan') {
-        Navigator.pushReplacementNamed(context, '/leader', arguments: uid);
       }
     } catch (e) {
       // Handle login error

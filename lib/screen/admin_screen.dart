@@ -5,7 +5,9 @@ import 'add_user_screen.dart';
 import '../component/confirmation_dialog.dart';
 
 class AdminScreen extends StatefulWidget {
-  const AdminScreen({super.key});
+  final Map<String, String> arguments;
+
+  const AdminScreen({super.key, required this.arguments});
 
   @override
   _AdminScreenState createState() => _AdminScreenState();
@@ -14,11 +16,19 @@ class AdminScreen extends StatefulWidget {
 class _AdminScreenState extends State<AdminScreen> {
   int _selectedIndex = 0;
 
-  static const List<Widget> _pages = <Widget>[
-    AddProductScreen(),
-    AddUserScreen(),
-    AdminBookingList()
-  ];
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    // Print the role to debug
+    // print('User role: ${widget.arguments['role']}');
+    _pages = [
+      AddProductScreen(role: widget.arguments['role']!),
+      AddUserScreen(role: widget.arguments['role']!),
+      AdminBookingList(role: widget.arguments['role']!),
+    ];
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -37,11 +47,13 @@ class _AdminScreenState extends State<AdminScreen> {
           onCancel: () => Navigator.of(context).pop(false),
         );
       },
-    ) ?? false;
+    ) ??
+        false;
   }
 
   void _logout() async {
-    bool confirm = await _showConfirmationDialog('Logout', 'Are you sure you want to logout?');
+    bool confirm = await _showConfirmationDialog(
+        'Logout', 'Are you sure you want to logout?');
     if (confirm) {
       Navigator.pushReplacementNamed(context, '/login');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -54,7 +66,7 @@ class _AdminScreenState extends State<AdminScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Admin Dashboard'),
+        title: widget.arguments['role'] == 'admin' ? const Text('Admin Dashboard') : const Text('Pimpinan Dashboard'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),

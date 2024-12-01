@@ -3,7 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
 
 class AdminBookingList extends StatelessWidget {
-  const AdminBookingList({super.key});
+  final String? role;
+
+  const AdminBookingList({super.key, required this.role});
 
   Future<void> _updateStatus(String bookingId, String productId, String newStatus) async {
     // Update status in tb_booking
@@ -104,7 +106,8 @@ class AdminBookingList extends StatelessWidget {
                         Text('Price: Rp ${booking['price']}'),
                       ],
                     ),
-                    trailing: DropdownButton<String>(
+                    trailing: role == 'admin'
+                        ? DropdownButton<String>(
                       value: currentStatus,
                       items: <String>['pending', 'booked', 'cancelled']
                           .map((String value) {
@@ -118,7 +121,8 @@ class AdminBookingList extends StatelessWidget {
                           _updateStatus(booking.id, productId, newValue);
                         }
                       },
-                    ),
+                    )
+                        : null,
                   ),
                 );
               },

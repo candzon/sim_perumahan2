@@ -28,9 +28,14 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const LoginScreen(),
-        '/admin': (context) => const AdminScreen(),
+        '/admin': (context) {
+          final Map<String, String> arguments =
+          ModalRoute.of(context)!.settings.arguments as Map<String, String>;
+          return AdminScreen(arguments: arguments);
+        },
         '/user': (context) {
-          final String uid = ModalRoute.of(context)!.settings.arguments as String;
+          final String uid =
+          ModalRoute.of(context)!.settings.arguments as String;
           return UserScreen(uid: uid);
         },
         '/leader': (context) => const LeaderScreen(),
@@ -38,6 +43,5 @@ class MyApp extends StatelessWidget {
         '/register': (context) => const RegisterScreen(),
       },
     );
-
   }
 }

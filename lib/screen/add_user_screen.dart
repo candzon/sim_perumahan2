@@ -6,7 +6,9 @@ import 'package:cloud_functions/cloud_functions.dart';
 import '../component/confirmation_dialog.dart';
 
 class AddUserScreen extends StatefulWidget {
-  const AddUserScreen({super.key});
+  final String? role;
+
+  const AddUserScreen({super.key, required this.role});
 
   @override
   _AddUserScreenState createState() => _AddUserScreenState();
@@ -37,29 +39,33 @@ class _AddUserScreenState extends State<AddUserScreen> {
 
   Future<bool> _showConfirmationDialog(String title, String message) async {
     return await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
-        return ConfirmationDialog(
-          title: title,
-          message: message,
-          onConfirm: () => Navigator.of(context).pop(true),
-          onCancel: () => Navigator.of(context).pop(false),
-        );
-      },
-    ) ?? false;
+          context: context,
+          builder: (BuildContext context) {
+            return ConfirmationDialog(
+              title: title,
+              message: message,
+              onConfirm: () => Navigator.of(context).pop(true),
+              onCancel: () => Navigator.of(context).pop(false),
+            );
+          },
+        ) ??
+        false;
   }
 
   void _addUser() async {
     if (_formKey.currentState!.validate()) {
-      bool confirm = await _showConfirmationDialog('Add User', 'Are you sure you want to add this user?');
+      bool confirm = await _showConfirmationDialog(
+          'Add User', 'Are you sure you want to add this user?');
       if (confirm) {
         try {
-          UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          UserCredential userCredential =
+              await FirebaseAuth.instance.createUserWithEmailAndPassword(
             email: _emailController.text,
             password: _passwordController.text,
           );
 
-          final hashedPassword = BCrypt.hashpw(_passwordController.text, BCrypt.gensalt());
+          final hashedPassword =
+              BCrypt.hashpw(_passwordController.text, BCrypt.gensalt());
 
           await FirebaseFirestore.instance
               .collection('tb_user')
@@ -143,9 +149,9 @@ class _AddUserScreenState extends State<AddUserScreen> {
                   decoration: const InputDecoration(labelText: 'Role'),
                   items: ['admin', 'pengguna', 'pimpinan']
                       .map((role) => DropdownMenuItem(
-                    value: role,
-                    child: Text(role),
-                  ))
+                            value: role,
+                            child: Text(role),
+                          ))
                       .toList(),
                   onChanged: (value) {
                     setState(() {
@@ -172,7 +178,8 @@ class _AddUserScreenState extends State<AddUserScreen> {
             ElevatedButton(
               onPressed: () async {
                 if (_editFormKey.currentState!.validate()) {
-                  bool confirm = await _showConfirmationDialog('Edit User', 'Are you sure you want to update this user?');
+                  bool confirm = await _showConfirmationDialog('Edit User',
+                      'Are you sure you want to update this user?');
                   if (confirm) {
                     final updateData = {
                       'name': _editNameController.text,
@@ -181,11 +188,16 @@ class _AddUserScreenState extends State<AddUserScreen> {
                       'updated_at': FieldValue.serverTimestamp(),
                     };
                     if (_editPasswordController.text.isNotEmpty) {
-                      updateData['password'] = BCrypt.hashpw(_editPasswordController.text, BCrypt.gensalt());
+                      updateData['password'] = BCrypt.hashpw(
+                          _editPasswordController.text, BCrypt.gensalt());
                     }
-                    await FirebaseFirestore.instance.collection('tb_user').doc(id).update(updateData);
+                    await FirebaseFirestore.instance
+                        .collection('tb_user')
+                        .doc(id)
+                        .update(updateData);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('User updated successfully')),
+                      const SnackBar(
+                          content: Text('User updated successfully')),
                     );
                     Navigator.pop(context);
                   }
@@ -200,7 +212,8 @@ class _AddUserScreenState extends State<AddUserScreen> {
   }
 
   void _deleteUser(String id) async {
-    bool confirm = await _showConfirmationDialog('Delete User', 'Are you sure you want to delete this user?');
+    bool confirm = await _showConfirmationDialog(
+        'Delete User', 'Are you sure you want to delete this user?');
     if (confirm) {
       try {
         await FirebaseFirestore.instance.collection('tb_user').doc(id).delete();
@@ -219,76 +232,77 @@ class _AddUserScreenState extends State<AddUserScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add User'),
+        title: widget.role == 'admin' ? const Text('Tambah User') : const Text('List User'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  TextFormField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(labelText: 'Name'),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter a name';
-                      }
-                      return null;
-                    },
-                  ),
-                  TextFormField(
-                    controller: _emailController,
-                    decoration: const InputDecoration(labelText: 'Email'),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter an email';
-                      }
-                      return null;
-                    },
-                  ),
-                  TextFormField(
-                    controller: _passwordController,
-                    decoration: const InputDecoration(labelText: 'Password'),
-                    obscureText: true,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter a password';
-                      }
-                      return null;
-                    },
-                  ),
-                  DropdownButtonFormField<String>(
-                    value: _selectedRole,
-                    decoration: const InputDecoration(labelText: 'Role'),
-                    items: ['admin', 'pimpinan']
-                        .map((role) => DropdownMenuItem(
-                      value: role,
-                      child: Text(role),
-                    ))
-                        .toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedRole = value;
-                      });
-                    },
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please select a role';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: _addUser,
-                    child: const Text('Tambah User'),
-                  ),
-                ],
+            if (widget.role != 'pimpinan')
+              Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(labelText: 'Name'),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a name';
+                        }
+                        return null;
+                      },
+                    ),
+                    TextFormField(
+                      controller: _emailController,
+                      decoration: const InputDecoration(labelText: 'Email'),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter an email';
+                        }
+                        return null;
+                      },
+                    ),
+                    TextFormField(
+                      controller: _passwordController,
+                      decoration: const InputDecoration(labelText: 'Password'),
+                      obscureText: true,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a password';
+                        }
+                        return null;
+                      },
+                    ),
+                    DropdownButtonFormField<String>(
+                      value: _selectedRole,
+                      decoration: const InputDecoration(labelText: 'Role'),
+                      items: ['admin', 'pimpinan']
+                          .map((role) => DropdownMenuItem(
+                                value: role,
+                                child: Text(role),
+                              ))
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedRole = value;
+                        });
+                      },
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please select a role';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: _addUser,
+                      child: const Text('Tambah User'),
+                    ),
+                  ],
+                ),
               ),
-            ),
             const SizedBox(height: 20),
             Expanded(
               child: SingleChildScrollView(
@@ -296,7 +310,10 @@ class _AddUserScreenState extends State<AddUserScreen> {
                 child: SingleChildScrollView(
                   scrollDirection: Axis.vertical,
                   child: StreamBuilder<QuerySnapshot>(
-                    stream: FirebaseFirestore.instance.collection('tb_user').orderBy('created_at', descending: true).snapshots(),
+                    stream: FirebaseFirestore.instance
+                        .collection('tb_user')
+                        .orderBy('created_at', descending: true)
+                        .snapshots(),
                     builder: (context, snapshot) {
                       if (!snapshot.hasData) {
                         return const Center(child: CircularProgressIndicator());
@@ -316,18 +333,25 @@ class _AddUserScreenState extends State<AddUserScreen> {
                             DataCell(Text(user['name'])),
                             DataCell(Text(user['email'])),
                             DataCell(Text(user['role'])),
-                            DataCell(Row(
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit),
-                                  onPressed: () => _editUser(user.id, user.data() as Map<String, dynamic>),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete),
-                                  onPressed: () => _deleteUser(user.id),
-                                ),
-                              ],
-                            )),
+                            DataCell(
+                              widget.role != 'pimpinan'
+                                  ? Row(
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.edit),
+                                          onPressed: () => _editUser(
+                                              user.id,
+                                              user.data()
+                                                  as Map<String, dynamic>),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.delete),
+                                          onPressed: () => _deleteUser(user.id),
+                                        ),
+                                      ],
+                                    )
+                                  : const Text(''),
+                            ),
                           ]);
                         }).toList(),
                       );
