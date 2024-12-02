@@ -14,17 +14,25 @@ class AdminBookingList extends StatefulWidget {
 class _AdminBookingListState extends State<AdminBookingList> {
   String? _selectedStatus;
 
-  Future<void> _updateStatus(String bookingId, String productId, String newStatus) async {
+  Future<void> _updateStatus(
+      String bookingId, String productId, String newStatus) async {
     // Update status in tb_booking
-    await FirebaseFirestore.instance.collection('tb_booking').doc(bookingId).update({'status': newStatus});
+    await FirebaseFirestore.instance
+        .collection('tb_booking')
+        .doc(bookingId)
+        .update({'status': newStatus});
 
     // Update status in tb_products
     String productStatus = newStatus == 'cancelled' ? 'available' : newStatus;
-    await FirebaseFirestore.instance.collection('tb_products').doc(productId).update({'status': productStatus});
+    await FirebaseFirestore.instance
+        .collection('tb_products')
+        .doc(productId)
+        .update({'status': productStatus});
   }
 
   Future<Map<String, dynamic>?> _getUserDetails(String uid) async {
-    DocumentSnapshot userSnapshot = await FirebaseFirestore.instance.collection('tb_user').doc(uid).get();
+    DocumentSnapshot userSnapshot =
+        await FirebaseFirestore.instance.collection('tb_user').doc(uid).get();
     if (userSnapshot.exists) {
       return userSnapshot.data() as Map<String, dynamic>?;
     }
@@ -60,8 +68,8 @@ class _AdminBookingListState extends State<AdminBookingList> {
           DropdownButton<String>(
             value: _selectedStatus,
             hint: const Text('Filter by Status'),
-            items: <String>['pending', 'booked', 'cancelled']
-                .map((String value) {
+            items:
+                <String>['pending', 'booked', 'cancelled'].map((String value) {
               return DropdownMenuItem<String>(
                 value: value,
                 child: Text(value),
@@ -144,20 +152,21 @@ class _AdminBookingListState extends State<AdminBookingList> {
                       ),
                       trailing: widget.role == 'admin'
                           ? DropdownButton<String>(
-                        value: currentStatus,
-                        items: <String>['pending', 'booked', 'cancelled']
-                            .map((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        }).toList(),
-                        onChanged: (String? newValue) {
-                          if (newValue != null) {
-                            _updateStatus(booking.id, productId, newValue);
-                          }
-                        },
-                      )
+                              value: currentStatus,
+                              items: <String>['pending', 'booked', 'cancelled']
+                                  .map((String value) {
+                                return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(value),
+                                );
+                              }).toList(),
+                              onChanged: (String? newValue) {
+                                if (newValue != null) {
+                                  _updateStatus(
+                                      booking.id, productId, newValue);
+                                }
+                              },
+                            )
                           : null,
                     ),
                   );
